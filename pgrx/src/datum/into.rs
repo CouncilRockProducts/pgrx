@@ -195,7 +195,15 @@ impl IntoDatum for u32 {
 impl IntoDatum for i64 {
     #[inline]
     fn into_datum(self) -> Option<pg_sys::Datum> {
-        Some(pg_sys::Datum::from(self))
+        if std::mem::size_of::<usize>() >= 8 {
+          Some(pg_sys::Datum::from(self))
+        } else {
+          unsafe {
+            let copy = pg_sys::palloc(std::mem::size_of::<Self>()).cast();
+            *copy = self;
+            Some(copy.into())
+          }
+        }
     }
 
     fn type_oid() -> pg_sys::Oid {
@@ -227,7 +235,15 @@ impl IntoDatum for f32 {
 impl IntoDatum for f64 {
     #[inline]
     fn into_datum(self) -> Option<pg_sys::Datum> {
-        Some(self.to_bits().into())
+        if std::mem::size_of::<usize>() >= 8 {
+          Some(self.to_bits().into())
+        } else {
+          unsafe {
+            let copy = pg_sys::palloc(std::mem::size_of::<Self>()).cast();
+            *copy = self;
+            Some(copy.into())
+          }
+        }
     }
 
     fn type_oid() -> pg_sys::Oid {

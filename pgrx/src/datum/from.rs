@@ -296,7 +296,13 @@ impl FromDatum for i64 {
         if is_null {
             None
         } else {
-            Some(datum.value() as _)
+            if std::mem::size_of::<usize>() >= 8 {
+              Some(datum.value() as _)
+            } else {
+              unsafe {
+                Some(*datum.cast_mut_ptr::<i64>())
+              }
+            }
         }
     }
 }
@@ -328,7 +334,14 @@ impl FromDatum for f64 {
         if is_null {
             None
         } else {
-            Some(f64::from_bits(datum.value() as _))
+            let value: u64 = if std::mem::size_of::<usize>() >= 8 {
+              datum.value() as _
+            } else {
+              unsafe {
+                *datum.cast_mut_ptr::<u64>()
+              }
+            };
+            Some(f64::from_bits(value))
         }
     }
 }
